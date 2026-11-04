@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Solar } from 'lunar-javascript';
 import { generateChart } from '@/lib/ziwei/algorithm';
-import { buildDaXianPalaces, buildLiuNianPalaces } from '@/lib/ziwei/flowing-palaces';
+import { buildDaXianPalaces, buildLiuNianPalaces, buildLiuYuePalaces, buildLiuRiPalaces } from '@/lib/ziwei/flowing-palaces';
 import { getDaXianIndexForYear } from '@/lib/ziwei/yunxian-context';
 import { getSiHuaByStem, getDaXianSiHua, getLiuNianSiHua, getLiuYueSiHua, getLiuRiSiHua, detectSelfSihua } from '@/lib/ziwei/sihua';
 import type { BirthInfo, ZiweiChart, SiHua } from '@/lib/ziwei/types';
@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
         dynamicPalaces: {
           daXian: dxIndex >= 0 ? buildDaXianPalaces(chart, dxIndex) : null,
           liuNian: buildLiuNianPalaces(chart, lunarYear),
-          note: 'Relative palace-name overlays. Natal stars remain at their original branches; month/day twelve-palace movement is not implemented.',
+          liuYue: buildLiuYuePalaces(chart, lunarYear, liuYue.month),
+          liuRi: buildLiuRiPalaces(chart, lunarYear, liuYue.month, lunarDay),
+          note: 'Relative palace-name overlays using Tai Sui and Dou Jun conventions. Natal stars remain at their original branches. Leap-month first/second-half handling follows sihua.ts; not independently validated against reference charts.',
         },
       },
     });
