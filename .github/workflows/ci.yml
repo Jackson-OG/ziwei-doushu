@@ -27,3 +27,6 @@ jobs:
 
       - name: 排盘引擎回归
         run: npm test
+
+      - name: 高级流动宫位综合回归
+        run: npx --no-install tsx scripts/regression/advanced-flowing-palaces.test.ts
