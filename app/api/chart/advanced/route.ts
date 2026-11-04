@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Solar } from 'lunar-javascript';
 import { generateChart } from '@/lib/ziwei/algorithm';
+import { buildDaXianPalaces, buildLiuNianPalaces } from '@/lib/ziwei/flowing-palaces';
 import { getDaXianIndexForYear } from '@/lib/ziwei/yunxian-context';
 import { getSiHuaByStem, getDaXianSiHua, getLiuNianSiHua, getLiuYueSiHua, getLiuRiSiHua, detectSelfSihua } from '@/lib/ziwei/sihua';
 import type { BirthInfo, ZiweiChart, SiHua } from '@/lib/ziwei/types';
@@ -93,6 +94,11 @@ export async function POST(request: NextRequest) {
         liuNian: layer(liuNian),
         liuYue: { ...layer(liuYue), lunarMonth: liuYue.month },
         liuRi: layer(liuRi),
+        dynamicPalaces: {
+          daXian: dxIndex >= 0 ? buildDaXianPalaces(chart, dxIndex) : null,
+          liuNian: buildLiuNianPalaces(chart, lunarYear),
+          note: 'Relative palace-name overlays. Natal stars remain at their original branches; month/day twelve-palace movement is not implemented.',
+        },
       },
     });
   } catch (error) {
