@@ -44,3 +44,50 @@ export function buildLiuNianPalaces(chart: ZiweiChart, lunarYear: number) {
     palaces: buildRelativePalaces(chart, mingBranch),
   };
 }
+
+/**
+ * 斗君法（可选的流派口径）：
+ * 流年太岁宫起正月，逆数到出生农历月，再顺数到出生时支；
+ * 所得为该流年的正月流月命宫。流月逐月顺行，流日初一
+ * 从当月流月命宫起，逐日顺行。
+ * 闰月采用 sihua.ts 的前十五日算本月、十六日起算下月口径。
+ * 这里只计算宫名叠层，不重新安星。
+ */
+export function buildLiuYuePalaces(
+  chart: ZiweiChart,
+  lunarYear: number,
+  effectiveMonth: number,
+) {
+  if (!Number.isInteger(effectiveMonth) || effectiveMonth < 1 || effectiveMonth > 12) {
+    throw new RangeError('Invalid effective lunar month');
+  }
+  const birthMonth = Math.abs(chart.lunarInfo.lunarMonth);
+  const birthHour = chart.birthInfo.hour;
+  const annualBranch = getYearBranchIndex(lunarYear);
+  const firstMonthMingBranch = mod12(annualBranch - (birthMonth - 1) + birthHour);
+  const mingBranch = mod12(firstMonthMingBranch + effectiveMonth - 1);
+  return {
+    method: 'Dou Jun convention: annual Tai Sui -> reverse-count natal lunar month -> forward-count natal hour; advance months forward',
+    lunarYear, effectiveMonth, annualBranch, birthMonth, birthHour,
+    firstMonthMingBranch, mingBranch,
+    palaces: buildRelativePalaces(chart, mingBranch),
+  };
+}
+
+export function buildLiuRiPalaces(
+  chart: ZiweiChart,
+  lunarYear: number,
+  effectiveMonth: number,
+  lunarDay: number,
+) {
+  if (!Number.isInteger(lunarDay) || lunarDay < 1 || lunarDay > 30) {
+    throw new RangeError('Invalid lunar day');
+  }
+  const month = buildLiuYuePalaces(chart, lunarYear, effectiveMonth);
+  const mingBranch = mod12(month.mingBranch + lunarDay - 1);
+  return {
+    method: 'Dou Jun convention: first lunar day at flowing-month Ming palace; advance one branch per day',
+    lunarYear, effectiveMonth, lunarDay, monthMingBranch: month.mingBranch, mingBranch,
+    palaces: buildRelativePalaces(chart, mingBranch),
+  };
+}
