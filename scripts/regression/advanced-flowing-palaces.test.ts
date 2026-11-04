@@ -38,7 +38,8 @@ for(let m=1;m<=12;m++) {
   for(let d=1;d<=30;d++)validate('day '+m+'/'+d,buildLiuRiPalaces(chart,2026,m,d));
 }
 for (const date of [[2026,1,1],[2026,2,16],[2026,2,17],[2026,11,13]] as const){
-  const lunar=Solar.fromYmd(...date).getLunar();
+  const [solarYear, solarMonth, solarDay] = date;
+  const lunar=Solar.fromYmd(solarYear, solarMonth, solarDay).getLunar();
   const year=lunar.getYear(), rawMonth=lunar.getMonth(), lunarDay=lunar.getDay();
   const annual=buildLiuNianPalaces(chart,year);
   validate('annual '+date.join('-'),annual);
