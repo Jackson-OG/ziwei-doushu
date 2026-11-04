@@ -46,6 +46,20 @@ export async function POST(request: NextRequest) {
     const lunarMonth = Math.abs(lunarMonthRaw);
     const lunarDay = Number(lunar.getDay());
     const isLeapMonth = lunarMonthRaw < 0;
+    // Diagnostic only: retain the natal iztro markers without silently rewriting them.
+    const natalTable = getSiHuaByStem(chart.lunarInfo.yearStem);
+    const natalMarkers = chart.palaces.flatMap(p =>
+      p.stars.filter(star => star.siHua).map(star => ({
+        star: star.name, type: star.siHua, palace: p.name, branch: BRANCHES[p.branch],
+      }))
+    );
+    const natalExpected = HUA.map(type => ({
+      type, star: natalTable[type],
+      markers: natalMarkers.filter(marker => marker.type === type).map(marker => marker.star),
+    }));
+    const natalDiscrepancies = natalExpected.filter(row =>
+      row.markers.length !== 1 || row.markers[0] !== row.star
+    );
     const dxIndex = getDaXianIndexForYear(chart, lunarYear);
     const daXian = dxIndex >= 0 ? getDaXianSiHua(chart, dxIndex, lunarYear) : null;
     const liuNian = getLiuNianSiHua(lunarYear);
@@ -58,6 +72,16 @@ export async function POST(request: NextRequest) {
       method: { natal: 'existing generateChart', flying: 'independent sihua.ts overlay', note: 'Four-transformation layers are not a complete flowing palace chart.' },
       targetDate: { ...targetDate, lunarYear, lunarMonth, lunarDay, isLeapMonth },
       chart,
+      natalSiHuaAudit: {
+        natalYearStemIndex: chart.lunarInfo.yearStem,
+        sourceOfChartMarkers: 'iztro astrolabe mutagen',
+        sourceOfExpectedTable: 'lib/ziwei/constants.ts SI_HUA_TABLE',
+        expectedFromProjectTable: natalExpected,
+        actualNatalMarkers: natalMarkers,
+        consistent: natalDiscrepancies.length === 0,
+        discrepancies: natalDiscrepancies,
+        note: 'Diagnostic comparison only. Different school configurations may explain differences; natal chart markers are unchanged.',
+      },
       advanced: {
         palaceFlying: chart.palaces.map(p => ({
           palace: p.name, branch: BRANCHES[p.branch], stemIndex: p.stem,
