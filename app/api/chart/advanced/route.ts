@@ -1,9 +1,10 @@
+import { resolveFlowingTime } from '@/lib/ziwei/flowing-time';
 import { NextRequest, NextResponse } from 'next/server';
 import { Solar } from 'lunar-javascript';
 import { generateChart } from '@/lib/ziwei/algorithm';
-import { buildDaXianPalaces, buildLiuNianPalaces, buildLiuYuePalaces, buildLiuRiPalaces } from '@/lib/ziwei/flowing-palaces';
+import { buildDaXianPalaces, buildLiuNianPalaces, buildLiuYuePalaces, buildLiuRiPalaces, buildLiuShiPalaces } from '@/lib/ziwei/flowing-palaces';
 import { getDaXianIndexForYear } from '@/lib/ziwei/yunxian-context';
-import { getSiHuaByStem, getDaXianSiHua, getLiuNianSiHua, getLiuYueSiHua, getLiuRiSiHua, detectSelfSihua } from '@/lib/ziwei/sihua';
+import { getSiHuaByStem, getDaXianSiHua, getLiuNianSiHua, getLiuYueSiHua, getLiuRiSiHua, getLiuShiSiHua, detectSelfSihua } from '@/lib/ziwei/sihua';
 import type { BirthInfo, ZiweiChart, SiHua } from '@/lib/ziwei/types';
 
 const HUA: SiHua[] = ['禄', '权', '科', '忌'];
@@ -40,8 +41,10 @@ export async function POST(request: NextRequest) {
     if (check.getUTCFullYear() !== targetDate.year || check.getUTCMonth() !== targetDate.month - 1 || check.getUTCDate() !== targetDate.day) {
       return NextResponse.json({ success: false, error: 'Target date does not exist' }, { status: 400 });
     }
+    const targetTime = resolveFlowingTime(targetDate, input.targetTime);
+    const effectiveDate = targetTime?.effectiveDate ?? targetDate;
     const chart = generateChart(birth);
-    const lunar = Solar.fromYmd(targetDate.year, targetDate.month, targetDate.day).getLunar();
+    const lunar = Solar.fromYmd(effectiveDate.year, effectiveDate.month, effectiveDate.day).getLunar();
     const lunarYear = Number(lunar.getYear());
     const lunarMonthRaw = Number(lunar.getMonth());
     const lunarMonth = Math.abs(lunarMonthRaw);
@@ -66,12 +69,15 @@ export async function POST(request: NextRequest) {
     const liuNian = getLiuNianSiHua(lunarYear);
     const liuYue = getLiuYueSiHua(liuNian.stemIndex, lunarMonth, { isLeapMonth, liuriDay: lunarDay, nextYearStem: getLiuNianSiHua(lunarYear + 1).stemIndex });
     const liuRi = getLiuRiSiHua(lunarYear, lunarMonth, lunarDay, isLeapMonth);
+    const liuShi = targetTime && liuRi ? getLiuShiSiHua(liuRi.stemIndex, targetTime.hourBranch) : null;
     const layer = (value: { stemIndex: number; stemName: string; transforms: Record<SiHua, string> } | null) =>
       value ? { ...value, placements: locate(chart, value.transforms) } : null;
     return NextResponse.json({
       success: true,
       method: { natal: 'existing generateChart', flying: 'independent sihua.ts overlay', note: 'Four-transformation layers are not a complete flowing palace chart.' },
       targetDate: { ...targetDate, lunarYear, lunarMonth, lunarDay, isLeapMonth },
+      targetTime,
+      effectiveDate,
       chart,
       natalSiHuaAudit: {
         natalYearStemIndex: chart.lunarInfo.yearStem,
@@ -94,11 +100,13 @@ export async function POST(request: NextRequest) {
         liuNian: layer(liuNian),
         liuYue: { ...layer(liuYue), lunarMonth: liuYue.month },
         liuRi: layer(liuRi),
+        liuShi: layer(liuShi),
         dynamicPalaces: {
           daXian: dxIndex >= 0 ? buildDaXianPalaces(chart, dxIndex) : null,
           liuNian: buildLiuNianPalaces(chart, lunarYear),
           liuYue: buildLiuYuePalaces(chart, lunarYear, liuYue.month),
           liuRi: buildLiuRiPalaces(chart, lunarYear, liuYue.month, lunarDay),
+          liuShi: targetTime ? buildLiuShiPalaces(chart, lunarYear, liuYue.month, lunarDay, targetTime.hourBranch) : null,
           note: 'Relative palace-name overlays using Tai Sui and Dou Jun conventions. Natal stars remain at their original branches. Leap-month first/second-half handling follows sihua.ts; not independently validated against reference charts.',
         },
       },

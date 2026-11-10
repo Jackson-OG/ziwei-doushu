@@ -30,3 +30,6 @@ jobs:
 
       - name: 高级流动宫位综合回归
         run: npx --no-install tsx scripts/regression/advanced-flowing-palaces.test.ts
+
+      - name: 流时及换日回归
+        run: node --import tsx scripts/regression/flowing-hour.test.ts

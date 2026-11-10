@@ -91,3 +91,16 @@ export function buildLiuRiPalaces(
     palaces: buildRelativePalaces(chart, mingBranch),
   };
 }
+
+/** Flowing-day Ming starts Zi hour; advance one branch per two-hour period. */
+export function buildLiuShiPalaces(chart: ZiweiChart, lunarYear: number, effectiveMonth: number, lunarDay: number, hourBranch: number) {
+  if (!Number.isInteger(hourBranch) || hourBranch < 0 || hourBranch > 11) throw new RangeError('Invalid hour branch');
+  const day = buildLiuRiPalaces(chart, lunarYear, effectiveMonth, lunarDay);
+  const mingBranch = mod12(day.mingBranch + hourBranch);
+  return {
+    method: 'Flowing-day Ming starts Zi hour; advance one branch per two-hour period; natal stars remain fixed',
+    lunarYear, effectiveMonth, lunarDay, hourBranch, hourBranchName: BRANCHES[hourBranch],
+    dayMingBranch: day.mingBranch, mingBranch,
+    palaces: buildRelativePalaces(chart, mingBranch),
+  };
+}
